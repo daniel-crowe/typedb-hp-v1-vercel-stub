@@ -1,0 +1,24 @@
+name: assemble
+on:
+  push:
+    paths:
+      - '.parts/**'
+      - '.github/workflows/assemble.yml'
+  workflow_dispatch:
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Concatenate exact parts
+        run: |
+          set -eu
+          cat .parts/aa .parts/ab .parts/ac > clone-build.sh
+          wc -c clone-build.sh
+          git config user.name "assemble"
+          git config user.email "assemble@users.noreply.github.com"
+          git add clone-build.sh
+          git diff --cached --quiet || git commit -m "Assemble clone-build.sh from exact disk parts"
+          git push

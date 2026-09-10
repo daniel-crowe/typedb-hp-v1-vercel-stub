@@ -12,12 +12,21 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Concatenate exact parts
+      - name: Decode exact parts
         run: |
           set -eu
-          cat .parts/aa .parts/ab .parts/ac .parts/ad .parts/ae .parts/af > clone-build.sh
-          wc -c clone-build.sh
-          python3 -c "import pathlib; p=pathlib.Path('clone-build.sh'); print(p.stat().st_size)"
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, hashlib
+          parts = sorted(Path('.parts').glob('*.b64'))
+          assert [p.name for p in parts] == ['aa.b64','ab.b64','ac.b64','ad.b64','ae.b64','af.b64','ag.b64','ah.b64'], [p.name for p in parts]
+          data = b''.join(base64.b64decode(p.read_text().strip()) for p in parts)
+          Path('clone-build.sh').write_bytes(data)
+          print(len(data), hashlib.sha256(data).hexdigest())
+          if len(data) != 114900:
+              raise SystemExit(f'size {len(data)}')
+          PY
+          chmod +x clone-build.sh
           git config user.name "assemble"
           git config user.email "assemble@users.noreply.github.com"
           git add clone-build.sh
